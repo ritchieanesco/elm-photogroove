@@ -18,6 +18,7 @@ viewThumbnail selectedUrl thumbnail =
     img
         [ src (urlPrefix ++ thumbnail.url)
         , classList [ ( "selected", selectedUrl == thumbnail.url ) ]
+        , onClick { operation = "SELECT_PHOTO", data = thumbnail.url }
         ]
         []
 
@@ -39,6 +40,14 @@ view model =
 -- (List.map = iterate through array
 -- (\photo -> viewThumbnail model.selectedUrl photo) = is anonymous function
 -- model.photos = the args/data to be passed into
+
+update msg model =
+    if msg.operation == "SELECT_PHOTO" then
+        { model | selectedUrl = msg.data }
+    else
+        model
+
+-- update model using operation id of SELECT PHOTO
 
 initialModel =
     { photos =
