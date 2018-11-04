@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Photo Groove</title>
     <style>
         body {
             background-color: rgb(44, 44, 44);
@@ -34,24 +34,23 @@
 
         #thumbnails {
             width: 440px;
-            float: left
+            float: left;
         }
 
         h1 {
-            font-family: Verdana;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
             color: #60b5cc;
         }
     </style>
 </head>
 
-
 <body>
 
-    <div id="root"></div>
+    <div id="app"></div>
 
     <script src="elm.js"></script>
     <script>
-        Elm.PhotoGroove.embed(document.getElementById('root'))
+        Elm.PhotoGroove.init({ node: document.getElementById("app") })
     </script>
 
 </body>
