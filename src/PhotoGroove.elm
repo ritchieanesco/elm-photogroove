@@ -12,8 +12,10 @@ module PhotoGroove exposing (main)
    Import other modules
 -}
 
+import Browser
 import Html exposing (div, h1, img, text)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 
 
 
@@ -30,7 +32,7 @@ view model =
     div [ class "content" ]
         [ h1 [] [ text "Photo Groove" ]
         , div [ id "thumbnails" ]
-            (List.map (\photo -> viewThumbnail model.selectedUrl photo)
+            (List.map (viewThumbnail model.selectedUrl)
                 model.photos
             )
         , img
@@ -51,6 +53,7 @@ viewThumbnail selectedUrl thumbnail =
     img
         [ src (urlPrefix ++ thumbnail.url)
         , classList [ ( "selected", selectedUrl == thumbnail.url ) ]
+        , onClick { description = "ClickedPhoto", data = thumbnail.url }
         ]
         []
 
@@ -60,6 +63,9 @@ viewThumbnail selectedUrl thumbnail =
    Use Html.classList to determine if thumbnail is selected
    classList uses a list of tuples, first providing classname
    and the condition for that classname
+-}
+{-
+   Attach onClick event and pass a record for the update function
 -}
 
 
@@ -73,5 +79,30 @@ initialModel =
     }
 
 
+update msg model =
+    if msg.description == "ClickedPhoto" then
+        { model | selectedUrl = msg.data }
+
+    else
+        model
+
+
+
+{-
+   Update function allows the model to be changed
+-}
+
+
 main =
-    view initialModel
+    Browser.sandbox
+        { init = initialModel
+        , view = view
+        , update = update
+        }
+
+
+
+{-
+   Browser.sandbox lets us specify how to react to user input
+   and update model
+-}
