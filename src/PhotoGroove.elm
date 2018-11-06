@@ -17,6 +17,7 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Random
 
 
 
@@ -38,6 +39,7 @@ type ThumbnailSize
 
 type Msg
     = ClickedPhoto String
+    | GotSelectedIndex Int
     | ClickedSize ThumbnailSize
     | ClickedSurpriseMe
 
@@ -184,17 +186,25 @@ getPhotoUrl index =
 -}
 
 
-update : Msg -> Model -> Model
+randomPhotoPicker : Random.Generator Int
+randomPhotoPicker =
+    Random.int 0 (Array.length photoArray - 1)
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GotSelectedIndex index ->
+            ( { model | selectedUrl = getPhotoUrl index }, Cmd.none )
+
         ClickedPhoto url ->
-            { model | selectedUrl = url }
+            ( { model | selectedUrl = url }, Cmd.none )
 
         ClickedSize size ->
-            { model | chosenSize = size }
+            ( { model | chosenSize = size }, Cmd.none )
 
         ClickedSurpriseMe ->
-            { model | selectedUrl = "2.jpeg" }
+            ( model, Random.generate GotSelectedIndex randomPhotoPicker )
 
 
 
@@ -204,13 +214,20 @@ update msg model =
 {-
    Substitute if/else statement with case statement
 -}
+{-
+   ClickedSurpriseMe
+   1. Generate an Int between 0 and 2 using randomPhotoPicker
+   2.  Take the randomly generated Int and pass to GotSelectedIndex
+-}
 
 
+main : Program () Model Msg
 main =
-    Browser.sandbox
-        { init = initialModel
+    Browser.element
+        { init = \flags -> ( initialModel, Cmd.none )
         , view = view
         , update = update
+        , subscriptions = \model -> Sub.none
         }
 
 
@@ -218,4 +235,9 @@ main =
 {-
    Browser.sandbox lets us specify how to react to user input
    and update model
+-}
+{-
+   Browser.sandbox changes to Browser.element.
+   Browser.sandbox only returns a model, however the changes here
+   are now returning a Model and a Command tupple.
 -}
