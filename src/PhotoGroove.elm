@@ -12,8 +12,9 @@ module PhotoGroove exposing (main)
    Import other modules
 -}
 
+import Array exposing (Array)
 import Browser
-import Html exposing (div, h1, img, text)
+import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 
@@ -24,14 +25,40 @@ import Html.Events exposing (onClick)
 -}
 
 
+urlPrefix : String
 urlPrefix =
     "http://elm-in-action.com/"
 
 
+type ThumbnailSize
+    = Small
+    | Medium
+    | Large
+
+
+type Msg
+    = ClickedPhoto String
+    | ClickedSize ThumbnailSize
+    | ClickedSurpriseMe
+
+
+
+{-
+   Transform Msg to custom type to allow for flexible
+-}
+
+
+view : Model -> Html Msg
 view model =
     div [ class "content" ]
         [ h1 [] [ text "Photo Groove" ]
-        , div [ id "thumbnails" ]
+        , button
+            [ onClick ClickedSurpriseMe ]
+            [ text "Surprise Me!" ]
+        , h3 [] [ text "Thumbnail Size:" ]
+        , div [ id "choose-size" ]
+            (List.map viewSizeChooser [ Small, Medium, Large ])
+        , div [ id "thumbnails", class (sizeToString model.chosenSize) ]
             (List.map (viewThumbnail model.selectedUrl)
                 model.photos
             )
@@ -49,11 +76,12 @@ view model =
 -}
 
 
+viewThumbnail : String -> Photo -> Html Msg
 viewThumbnail selectedUrl thumbnail =
     img
         [ src (urlPrefix ++ thumbnail.url)
         , classList [ ( "selected", selectedUrl == thumbnail.url ) ]
-        , onClick { description = "ClickedPhoto", data = thumbnail.url }
+        , onClick (ClickedPhoto thumbnail.url)
         ]
         []
 
@@ -69,6 +97,53 @@ viewThumbnail selectedUrl thumbnail =
 -}
 
 
+viewSizeChooser : ThumbnailSize -> Html Msg
+viewSizeChooser size =
+    label []
+        [ input [ type_ "radio", name "size", onClick (ClickedSize size) ] []
+        , text (sizeToString size)
+        ]
+
+
+
+{-
+   Generate a single radio button function to be passed
+   into the view
+-}
+
+
+sizeToString : ThumbnailSize -> String
+sizeToString size =
+    case size of
+        Small ->
+            "small"
+
+        Medium ->
+            "med"
+
+        Large ->
+            "large"
+
+
+type alias Photo =
+    { url : String }
+
+
+
+{-
+   Use type alias to reduce code duplication. Here we are using
+   type alias for the List/Array of photos
+-}
+
+
+type alias Model =
+    { photos : List Photo
+    , selectedUrl : String
+    , chosenSize : ThumbnailSize
+    }
+
+
+initialModel : Model
 initialModel =
     { photos =
         [ { url = "1.jpeg" }
@@ -76,20 +151,58 @@ initialModel =
         , { url = "3.jpeg" }
         ]
     , selectedUrl = "3.jpeg"
+    , chosenSize = Medium
     }
 
 
-update msg model =
-    if msg.description == "ClickedPhoto" then
-        { model | selectedUrl = msg.data }
+photoArray : Array Photo
+photoArray =
+    Array.fromList initialModel.photos
 
-    else
-        model
+
+
+{-
+   Convert List to Array so we can randomise the photos
+-}
+
+
+getPhotoUrl : Int -> String
+getPhotoUrl index =
+    case Array.get index photoArray of
+        Just photo ->
+            photo.url
+
+        Nothing ->
+            ""
+
+
+
+{-
+   Selecting a photo by url.
+   Using destructuring to extract value from Just.
+   Case expression used to cover a Maybe function
+-}
+
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        ClickedPhoto url ->
+            { model | selectedUrl = url }
+
+        ClickedSize size ->
+            { model | chosenSize = size }
+
+        ClickedSurpriseMe ->
+            { model | selectedUrl = "2.jpeg" }
 
 
 
 {-
    Update function allows the model to be changed
+-}
+{-
+   Substitute if/else statement with case statement
 -}
 
 
