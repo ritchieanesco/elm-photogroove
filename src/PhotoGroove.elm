@@ -38,10 +38,10 @@ type ThumbnailSize
 
 
 type Msg
-    = ClickedPhoto String
-    | GotSelectedIndex Int
-    | ClickedSize ThumbnailSize
-    | ClickedSurpriseMe
+    = SelectByUrl String
+    | SelectByIndex Int
+    | SetSize ThumbnailSize
+    | SurpriseMe
 
 
 
@@ -55,7 +55,7 @@ view model =
     div [ class "content" ]
         [ h1 [] [ text "Photo Groove" ]
         , button
-            [ onClick ClickedSurpriseMe ]
+            [ onClick SurpriseMe ]
             [ text "Surprise Me!" ]
         , h3 [] [ text "Thumbnail Size:" ]
         , div [ id "choose-size" ]
@@ -64,26 +64,34 @@ view model =
             (List.map (viewThumbnail model.selectedUrl)
                 model.photos
             )
-        , img
-            [ class "large"
-            , src (urlPrefix ++ "large/" ++ model.selectedUrl)
-            ]
-            []
+        , viewLarge model.selectedUrl
         ]
 
 
 
 {-
    Use anonymous function to pass selected url and photo data
+   Create a viewLarge function that will handle if there is a source for the image
+   if so show image else show nothing.
 -}
 
 
-viewThumbnail : String -> Photo -> Html Msg
+viewLarge : Maybe String -> Html Msg
+viewLarge maybeUrl =
+    case maybeUrl of
+        Nothing ->
+            text ""
+
+        Just url ->
+            img [ class "large", src (urlPrefix ++ "large/" ++ url) ] []
+
+
+viewThumbnail : Maybe String -> Photo -> Html Msg
 viewThumbnail selectedUrl thumbnail =
     img
         [ src (urlPrefix ++ thumbnail.url)
-        , classList [ ( "selected", selectedUrl == thumbnail.url ) ]
-        , onClick (ClickedPhoto thumbnail.url)
+        , classList [ ( "selected", selectedUrl == Just thumbnail.url ) ] -- selectedUrl is a Maybe so adding Just to thumbnail means comparing the 2 Maybe
+        , onClick (SelectByUrl thumbnail.url)
         ]
         []
 
@@ -102,7 +110,7 @@ viewThumbnail selectedUrl thumbnail =
 viewSizeChooser : ThumbnailSize -> Html Msg
 viewSizeChooser size =
     label []
-        [ input [ type_ "radio", name "size", onClick (ClickedSize size) ] []
+        [ input [ type_ "radio", name "size", onClick (SetSize size) ] []
         , text (sizeToString size)
         ]
 
@@ -140,21 +148,25 @@ type alias Photo =
 
 type alias Model =
     { photos : List Photo
-    , selectedUrl : String
+    , selectedUrl : Maybe String
+    , loadingError : Maybe String
     , chosenSize : ThumbnailSize
     }
 
 
 initialModel : Model
 initialModel =
-    { photos =
-        [ { url = "1.jpeg" }
-        , { url = "2.jpeg" }
-        , { url = "3.jpeg" }
-        ]
-    , selectedUrl = "3.jpeg"
+    { photos = []
+    , selectedUrl = Nothing
+    , loadingError = Nothing
     , chosenSize = Medium
     }
+
+
+
+{-
+   Add Maybe into model while we wait for data from the server
+-}
 
 
 photoArray : Array Photo
@@ -168,14 +180,14 @@ photoArray =
 -}
 
 
-getPhotoUrl : Int -> String
+getPhotoUrl : Int -> Maybe String
 getPhotoUrl index =
     case Array.get index photoArray of
         Just photo ->
-            photo.url
+            Just photo.url
 
         Nothing ->
-            ""
+            Nothing
 
 
 
@@ -186,25 +198,32 @@ getPhotoUrl index =
 -}
 
 
-randomPhotoPicker : Random.Generator Int
-randomPhotoPicker =
-    Random.int 0 (Array.length photoArray - 1)
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotSelectedIndex index ->
-            ( { model | selectedUrl = getPhotoUrl index }, Cmd.none )
+        SelectByIndex index ->
+            let
+                newSelectedUrl : Maybe String
+                newSelectedUrl =
+                    model.photos
+                        |> Array.fromList
+                        |> Array.get index
+                        |> Maybe.map .url
+            in
+            ( { model | selectedUrl = newSelectedUrl }, Cmd.none )
 
-        ClickedPhoto url ->
-            ( { model | selectedUrl = url }, Cmd.none )
+        SelectByUrl url ->
+            ( { model | selectedUrl = Just url }, Cmd.none )
 
-        ClickedSize size ->
+        SetSize size ->
             ( { model | chosenSize = size }, Cmd.none )
 
-        ClickedSurpriseMe ->
-            ( model, Random.generate GotSelectedIndex randomPhotoPicker )
+        SurpriseMe ->
+            let
+                randomPhotoPicker =
+                    Random.int 0 (List.length model.photos - 1)
+            in
+            ( model, Random.generate SelectByIndex randomPhotoPicker )
 
 
 
@@ -215,9 +234,9 @@ update msg model =
    Substitute if/else statement with case statement
 -}
 {-
-   ClickedSurpriseMe
+   SurpriseMe
    1. Generate an Int between 0 and 2 using randomPhotoPicker
-   2.  Take the randomly generated Int and pass to GotSelectedIndex
+   2.  Take the randomly generated Int and pass to SelectByIndex
 -}
 
 
